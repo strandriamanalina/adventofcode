@@ -1,0 +1,77 @@
+---
+title: "advent of code 2023"
+format: html
+editor: visual
+---
+
+## \-\-- Day 1: Trebuchet?! \-\--
+
+```{r}
+#| warning: false
+
+library(tidyverse)
+library(stringi)
+
+day1 <- readLines(con = "day1.txt")
+
+map_int(day1, ~(.x %>% stri_extract_all(regex = '\\d') %>% 
+  unlist() %>% 
+  .[c(1,length(.))] %>% 
+  paste(collapse = "") %>% 
+  as.integer())) %>% 
+  sum()
+
+# part2 : beware of overlap
+
+
+map_int(day1, ~(stri_match_all(.x, regex = "(?=(one|two|three|four|five|six|seven|eight|nine|\\d))")[[1]][,2] %>% 
+  unlist() %>% 
+  str_replace_all(c("one"="1", "two"="2" ,"three"="3", "four" ="4", "five" = "5", "six" = "6", "seven" = "7", "eight"= "8", "nine"= "9")) %>% 
+ .[c(1,length(.))] %>% 
+  paste(collapse = "") %>% 
+  as.integer())) %>%
+  sum()
+
+
+
+```
+
+## \-\-- Day 2: Cube Conundrum \-\--
+
+```{r}
+#| warning: false
+
+day2 <- read.table("day2.txt", sep = ":", col.names = c("game", "sets"), skip = ) %>%
+  rownames_to_column(var = "ID") %>% 
+  mutate(sets = strsplit(sets, ";")) %>%
+        unnest(sets) 
+
+impossible <- day2 %>% 
+  mutate(blue = map_int(sets, ~as.integer(str_match(.x, "(\\d+) blue")[,2])),
+         green = map_int(sets, ~as.integer(str_match(.x, "(\\d+) green")[,2])),
+         red = map_int(sets, ~as.integer(str_match(.x, "(\\d+) red")[,2]))) %>% 
+  filter(red > 12 | green > 13 | blue > 14)
+
+
+sum(as.integer(unique(day2[["ID"]]))) - sum(as.integer(unique(impossible[["ID"]])))
+
+# part 2
+mincolor <- day2 %>% 
+  mutate(blue = map_int(sets, ~as.integer(str_match(.x, "(\\d+) blue")[,2])),
+         green = map_int(sets, ~as.integer(str_match(.x, "(\\d+) green")[,2])),
+         red = map_int(sets, ~as.integer(str_match(.x, "(\\d+) red")[,2]))) 
+
+
+mincolor %>% 
+  group_by(game) %>% 
+  summarise(
+    maxblue = max(blue, na.rm = TRUE),
+    maxred = max(red, na.rm = TRUE),
+    maxgreen = max(green, na.rm = TRUE)
+  ) %>% 
+  mutate(power = (maxblue*maxred*maxgreen)) %>% 
+  summarise(answer = sum(power)) %>% 
+  unlist()
+  
+
+```

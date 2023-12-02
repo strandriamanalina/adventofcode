@@ -1,0 +1,208 @@
+---
+title: "advent of code 2022"
+format: html
+editor: visual
+---
+
+## Day 1: Calorie Counting
+
+Find the Elf carrying the most Calories. *How many total Calories is that Elf carrying?*
+
+```{r}
+#| warning: false
+
+
+library(tidyverse)
+library(here)
+
+
+data <- readLines(here("2022", "input.txt")) |> parse_integer()
+
+i <- !is.na(data)
+result <- split(data[i], cumsum(!i)[i])
+top1 <- max(map_int(result, ~sum(.x)))
+top1
+
+# Find the top three Elves carrying the most Calories. How many Calories are those Elves carrying in total?
+top3 <- sort(map_int(result, ~sum(.x)), decreasing = TRUE)[1:3] |> sum()
+top3
+
+```
+
+## Day 2: Rock Paper Scissors
+
+```{r}
+
+# What would your total score be if everything goes exactly according to your strategy guide?
+library(stringi)
+
+day2 <- readLines(here("2022", "day2.txt"))
+
+i <- str_replace_all(day2, "A", "X") |>
+  str_replace_all("B", "Y") |>
+  str_replace_all("C", "Z")
+
+i2 <- stri_replace_all_regex(i, "X X|Y Y|Z Z", 3) |>
+  stri_replace_all_regex("X Y|Y Z|Z X", 6) |>
+  stri_replace_all_regex("X Z|Y X|Z Y", 0) |>
+  parse_integer()
+
+i3 <- stri_replace_all_regex(i, "X X|Y X|Z X", 1) |>
+  stri_replace_all_regex("X Y|Y Y|Z Y", 2) |>
+  stri_replace_all_regex("X Z|Y Z|Z Z", 3) |>
+  parse_integer()
+
+sum(i2, i3)
+
+# Following the Elf's instructions for the second column, what would your total score be if everything goes exactly according to your strategy guide?
+
+i4 <- stri_replace_all_regex(i, "X X|Y X|Z X", 0) |>
+  stri_replace_all_regex("X Y|Y Y|Z Y", 3) |>
+  stri_replace_all_regex("X Z|Y Z|Z Z", 6) |>
+  parse_integer()
+
+i5 <- stri_replace_all_regex(i, "X Y|Y X|Z Z", 1) |>
+  stri_replace_all_regex("X Z|Y Y|Z X", 2) |>
+  stri_replace_all_regex("X X|Y Z|Z Y", 3) |>
+  parse_integer()
+
+sum(i4, i5)
+
+```
+
+## Day 3: Rucksack Reorganization
+
+```{r}
+
+day3 <- readLines(here("2022", "day3.txt"))
+
+sep_string <- map(day3, ~c(substr(.x, 1, nchar(.x)/2), substr(.x, ((nchar(.x))/2)+1, nchar(.x))))
+
+intersect(unlist(strsplit(sep_string [[2]][1], "")), unlist(strsplit(sep_string [[2]][2], "")))
+
+priority <- map_chr(sep_string, ~intersect(unlist(strsplit(.x[1], "")), unlist(strsplit(.x[2], ""))))
+
+l <- c(1:52) |> set_names(c(letters, LETTERS))
+
+sum(l[priority])
+
+# What is the sum of the priorities of those item types?
+
+day3[1:3]
+day3[4:6]
+
+g <- rep(seq(1, length(day3)/3), each=3)
+
+newday3 <- set_names(day3, g)
+
+# map(unique(names(newday3)), ~ flatten_dbl(newday3[names(newday3) == .x]))
+
+groupsplit <- split(newday3, names(newday3)) 
+
+
+intersect((intersect(unlist(strsplit(groupsplit[[1]][1], "")), unlist(strsplit(groupsplit[[1]][2], "")))),
+          unlist(strsplit(groupsplit[[1]][3], "")))
+
+badge <- map_chr(groupsplit, ~ intersect((intersect(unlist(strsplit(.x[1], "")), unlist(strsplit(.x[2], "")))),
+          unlist(strsplit(.x[3], "")))) |> unname()
+
+sum(l[badge])
+
+```
+
+## Day 4: Camp Cleanup
+
+```{r}
+# In how many assignment pairs does one range fully contain the other?
+
+day4 <- readLines(here("2022", "day4.txt"))
+
+splitday4 <- str_split(day4, "/n") |> 
+  map(~unlist(str_split(.x, ","))) |>
+  map(~unlist(str_split(.x, "-"))) |>
+  map(~unlist(parse_integer(.x))) |>
+  map(~list(seq(.x[1],.x[2],1), seq(.x[3],.x[4],1)))
+
+splitday4[[2]][[2]] %in% splitday4[[2]][[1]]
+  
+splitday4[[3]][[2]] %in% splitday4[[3]][[1]]
+
+grepl(paste(splitday4[[3]][[2]],collapse=";"),paste(splitday4[[3]][[1]],collapse=";"))
+grepl(paste(splitday4[[3]][[1]],collapse=";"),paste(splitday4[[3]][[2]],collapse=";"))
+
+# This seems to give the wrong answer
+sum(map_lgl(splitday4, ~grepl(paste(.x[[1]],collapse=";"),paste(.x[[2]],collapse=";"))),
+map_lgl(splitday4, ~grepl(paste(.x[[2]],collapse=";"),paste(.x[[1]],collapse=";"))))
+
+
+# Let's try another way
+
+all(splitday4[[3]][[2]] %in% splitday4[[3]][[1]]) | all(splitday4[[3]][[1]] %in% splitday4[[3]][[2]])
+
+all(splitday4[[2]][[2]] %in% splitday4[[2]][[1]]) | all(splitday4[[2]][[1]] %in% splitday4[[2]][[2]])
+
+# This gives the right answer
+
+map_lgl(splitday4, ~(all(.x[[2]] %in% .x[[1]]) | all(.x[[1]] %in% .x[[2]]))) |> sum()
+
+
+# In how many assignment pairs do the ranges overlap?
+
+map_lgl(splitday4, ~(any(.x[[2]] %in% .x[[1]]) | any(.x[[1]] %in% .x[[2]]))) |> sum()
+
+
+
+```
+
+## Day 5: Supply Stacks
+
+```{r}
+
+library(stringi)
+
+day5_instruction <- read_lines(here("2022", "day5.txt"), skip = 10) |> 
+  map(~parse_integer(str_match(.x, "(\\d+).+?(\\d).+?(\\d)")[,c(2,3,4)]))
+
+# parse double
+
+
+day5_crates <- read_lines(here("2022", "day5.txt"), n_max = 8)
+
+day5_crates_split <- str_split(str_replace_all(day5_crates, pattern = "\\[|\\]", replacement = " "),"") |> 
+  transpose() |> 
+  keep(~ any(LETTERS %in% .x)) |>
+  map(~as_vector(.x)) |>
+  map(~.x[.x %in% LETTERS])
+
+
+
+# "move 2 from 4 to 6"
+essai <- day5_crates_split
+essai[[6]] <- c(essai[[4]][c(2,1)],essai[[6]])
+essai[[4]] <- essai[[4]][-c(1,2)]
+
+parse_integer(unlist(str_extract_all(day5_instruction[[1]], "(\\d)")))
+
+# A function to update
+data <- day5_crates_split
+
+move_crates <- function(data, crate, from, to){
+  ifelse(
+    crate > length(data[[from]]),
+    crate <- length(data[[from]]),
+    crate
+  )
+to_move <<- data[[from]][1:crate]
+data[[from]] <<- tail(data[[from]], -crate)
+data[[to]] <<- c(to_move,data[[to]])
+}
+
+map(day5_instruction,  ~ move_crates(essai, .x[1], .x[2], .x[3]))
+
+data
+
+paste(map_chr(data, ~.x[1]), collapse = "")
+
+```
+
+## Hi
